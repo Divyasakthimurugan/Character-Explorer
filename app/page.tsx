@@ -1,5 +1,6 @@
 "use client";
 
+import CharacterCard from "@/components/CharacterCard";
 import { useState, useEffect } from "react";
 
 interface Character {
@@ -7,6 +8,8 @@ interface Character {
   name: string;
   image: string;
   status: string;
+  gender: string;
+  species: string;
 }
 
 export default function Page() {
@@ -115,17 +118,13 @@ export default function Page() {
 
       {/* GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {characters.map((char) => (
-          <div key={char.id} className="border rounded p-2">
-            <img
-              src={char.image}
-              alt={char.name}
-              className="w-full h-auto rounded mx-auto"
-            />
-            <h3 className="font-semibold mt-2">{char.name}</h3>
-            <p className="text-sm text-gray-500">{char.status}</p>
-          </div>
-        ))}
+      
+          {characters.map((character: Character) => (
+              
+              <CharacterCard key={character.id} character={character} />
+            ))}
+         
+        
       </div>
 
       {/* PAGINATION */}
