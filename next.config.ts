@@ -1,8 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   images: {
-    domains: ["rickandmortyapi.com"],
+    domains: ['rickandmortyapi.com'],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

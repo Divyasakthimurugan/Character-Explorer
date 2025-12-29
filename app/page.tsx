@@ -1,27 +1,38 @@
 "use client";
 
-import CharacterCard from "@/components/CharacterCard";
 import { useState, useEffect } from "react";
-
-interface Character {
-  id: number;
-  name: string;
-  image: string;
-  status: string;
-  gender: string;
-  species: string;
-}
+import { useSearchParams, useRouter } from "next/navigation";
+import CharacterGrid from "@/components/CharacterGrid";
+import { Character } from "@/types/character";
 
 export default function Page() {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [gender, setGender] = useState("");
-  const [species, setSpecies] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Sync state with URL params
+  const [search, setSearch] = useState(searchParams.get("name") || "");
+  const [status, setStatus] = useState(searchParams.get("status") || "");
+  const [gender, setGender] = useState(searchParams.get("gender") || "");
+  const [species, setSpecies] = useState(searchParams.get("species") || "");
+  const [page, setPage] = useState(Number(searchParams.get("page") || 1));
+
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Update URL whenever filters/page change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("name", search);
+    if (status) params.set("status", status);
+    if (gender) params.set("gender", gender);
+    if (species) params.set("species", species);
+    params.set("page", String(page));
+
+    router.replace(`/?${params.toString()}`);
+  }, [search, status, gender, species, page, router]);
+
+  // Fetch characters whenever filters/page change
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -33,14 +44,20 @@ export default function Page() {
       if (gender) params.append("gender", gender);
       if (species) params.append("species", species);
 
-      const res = await fetch(
-        `https://rickandmortyapi.com/api/character/?${params.toString()}`
-      );
+      try {
+        const res = await fetch(
+          `https://rickandmortyapi.com/api/character/?${params.toString()}`
+        );
+        const data = await res.json();
 
-      const data = await res.json();
+        setCharacters(data.results || []);
+        setTotalPages(data.info?.pages || 1);
+      } catch (err) {
+        console.error("Failed to fetch characters:", err);
+        setCharacters([]);
+        setTotalPages(1);
+      }
 
-      setCharacters(data.results || []);
-      setTotalPages(data.info?.pages || 1);
       setLoading(false);
     }
 
@@ -49,9 +66,7 @@ export default function Page() {
 
   return (
     <main className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">
-        Rick & Morty Character Explorer
-      </h1>
+      <h1 className="text-3xl font-bold mb-6">Rick & Morty Character Explorer</h1>
 
       {/* SEARCH + FILTERS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -66,7 +81,6 @@ export default function Page() {
           className="border p-2 rounded w-full"
         />
 
-        {/* STATUS */}
         <select
           value={status}
           onChange={(e) => {
@@ -81,7 +95,6 @@ export default function Page() {
           <option value="unknown">Unknown</option>
         </select>
 
-        {/* GENDER */}
         <select
           value={gender}
           onChange={(e) => {
@@ -97,7 +110,6 @@ export default function Page() {
           <option value="unknown">Unknown</option>
         </select>
 
-        {/* SPECIES */}
         <select
           value={species}
           onChange={(e) => {
@@ -114,24 +126,14 @@ export default function Page() {
         </select>
       </div>
 
-      {loading && <p>Loading...</p>}
-
       {/* GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      
-          {characters.map((character: Character) => (
-              
-              <CharacterCard key={character.id} character={character} />
-            ))}
-         
-        
-      </div>
+      <CharacterGrid characters={characters} loading={loading} />
 
       {/* PAGINATION */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
         <button
           disabled={page === 1}
-          onClick={() => setPage(page - 1)}
+          onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
           className="border px-4 py-2 rounded disabled:opacity-50"
         >
           Prev
@@ -143,7 +145,7 @@ export default function Page() {
 
         <button
           disabled={page === totalPages}
-          onClick={() => setPage(page + 1)}
+          onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
           className="border px-4 py-2 rounded disabled:opacity-50"
         >
           Next
